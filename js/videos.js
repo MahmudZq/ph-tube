@@ -1,36 +1,9 @@
+const videosUrl = "https://openapi.programming-hero.com/api/phero-tube/videos";  
+const videoDetailsUrl = "https://openapi.programming-hero.com/api/phero-tube/video/";  // aaaa
 
-const videosUrl = " https://openapi.programming-hero.com/api/phero-tube/videos/";  
-const loadVideos = async (url) =>{
-    try{
-    let res = await fetch(url)
-    const data = await res.json();
-    console.log(data.videos);
-    displayVideos(data.videos);
-    }
-    catch({name, message})
-    {
-        console.log(name);
-        console.log(message);
-    }
-    
-}
+const getTimeString = (time) =>{
 
-const displayVideos = (data) => {
-    const videoSection = document.getElementById('videos');
-
-    // console.log(videoSection);
-
-
-    data.forEach((items) =>{
-
-        const card = document.createElement('div');
-        card.id =items.category_id;
-        card.classList="w-[350px] video mx-auto mt-5 flex justify-center items-center rounded-lg"
-        card.classList.add(items.category_id);
-        const verifiedIcon = items.authors[0].verified? `<img src="https://img.icons8.com/?size=100&id=D9RtvkuOe31p&format=png&color=000000" class="w-5 h-5">` : "";
-        const time = items.others.posted_date;
-
-        let yr = time / (3600*24*365);
+    let yr = time / (3600*24*365);
         yr = Math.floor(yr);
         let remainingSec = time % (3600* 24 * 365);
         let month = remainingSec / (3600* 24 * 30);
@@ -53,18 +26,63 @@ const displayVideos = (data) => {
         else if(min > 0){timeleft = `${min} min `}
         else {timeleft = ` ${sec} sec `}
 
+        return timeleft;
+};
+
+
+const loadVideos = async (search = "") =>{
+    url = `https://openapi.programming-hero.com/api/phero-tube/videos?title=${search}`;
+    try{
+    let res = await fetch(url);
+    const data = await res.json();
+    displayVideos(data.videos);
+    }
+    catch({name, message})
+    {
+        console.log(name);
+        console.log(message);
+    }
+    
+};
+
+
+const displayVideos = (data) => {
+    const videoSection = document.getElementById('videos');
+    const noContent = document.getElementById("noContent");
+    const categories = document.getElementsByClassName("category");
+    const activeCategory = document.getElementById("1000");
+    noContent.classList.add("hidden");
+    for(let category of categories)
+        {
+            category.classList.remove("bg-error","text-white");
+        }
+    activeCategory.classList.add("bg-error","text-white");
+
+    videoSection.innerHTML = "";
+
+
+    data.forEach((items) =>{
+
+        const card = document.createElement('div');
+        card.id =items.category_id;
+        card.classList="w-full video mx-auto mt-5 flex justify-center items-center rounded-lg"
+        card.classList.add(items.category_id);
+        const verifiedIcon = items.authors[0].verified? `<img src="https://img.icons8.com/?size=100&id=D9RtvkuOe31p&format=png&color=000000" class="w-5 h-5">` : "";
+        const time = items.others.posted_date;
+        const timeleft = getTimeString(time);
+        
         const timeLeftStr = time? `<p class="absolute bottom-2 right-2 bg-black text-white rounded-lg px-4 py-2">${timeleft} ago</p>` : ""
         const videoId = items.video_id;
-        console.log(videoId);
+        
         card.innerHTML =
         `
-            <div class="card card-compact" >
+            <div class="card card-compact w-full" >
             
 
-            <figure class="relative">
+            <figure class="relative  h-[200px] ">
                 <img
                 src="${[items.thumbnail]}"
-                class=" w-[350px] h-[200px] object-cover"
+                class="h-full w-full object-cover"
                 alt="${items.title}" />
                 ${timeLeftStr}
             </figure>
@@ -94,15 +112,20 @@ const displayVideos = (data) => {
         `
         videoSection.appendChild(card);
     })
-}
-
+};
 
 const loadCategoryVideos = (category_id) =>{
+    const noContent = document.getElementById("noContent");
     const videos = document.getElementsByClassName("video");
     const spinner = document.getElementById('spinner');
     const categories = document.getElementsByClassName("category");
     const activeCategory = document.getElementById(category_id);
+    const videoCategory = document.getElementsByClassName(category_id)
 
+    if(videoCategory.length !==  0 || activeCategory.id === "1000"){
+        
+        noContent.classList.add("hidden");
+    }
     for(let video of videos)
     {
         video.classList.add("hidden");
@@ -121,28 +144,35 @@ const loadCategoryVideos = (category_id) =>{
         spinner.classList.remove("flex");
         spinner.classList.add("hidden");    
     
-    const videoCategory = document.getElementsByClassName(category_id)
+    
     for(let video of videoCategory)
     {
         video.classList.remove("hidden");
     }
+    if(activeCategory.id === "1000"){
+        for(let video of videos){
+            video.classList.remove("hidden");
+        }
+    }
+    else if(videoCategory.length ===  0){
+        
+        noContent.classList.remove("hidden");
+    }
     
+   
 },1000)
     
-}
+};
 
-const videoDetailsUrl = "https://openapi.programming-hero.com/api/phero-tube/video/";  // aaaa
+
 const modal = async (videoId) =>{
     my_modal_5.showModal();
     const modal = document.getElementById("modal-content");
 
     url = `${videoDetailsUrl}${videoId}`;
-    console.log(url);
     const res = await fetch(url);
     const data = await res.json();
-    console.log(data);
-    console.log(data.video.thumbnail);
-    console.log(data.video.description);
+
     modal.innerHTML =
     `
     <div class = "space-y-2">
@@ -151,6 +181,24 @@ const modal = async (videoId) =>{
     <p class="font-lg opacity-80 text-[#000000]" >${data.video.description}</p>
     </div>
     `
-}
-loadVideos(videosUrl);
+};
 
+
+document.getElementById("search").addEventListener("keyup", (e) =>{
+    loadVideos(e.target.value);
+}
+);
+ 
+const sortCards = async () =>{
+    
+    const res = await fetch(videosUrl);
+    let data = await res.json();
+    let videos = data.videos;
+
+    // Sort by title A-Z
+    videos.sort((a, b) => a.title.localeCompare(b.title));
+
+    displayVideos(videos);
+}
+
+loadVideos();
