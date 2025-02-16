@@ -32,7 +32,6 @@ const loadCategories = async(url) => {
     try{
     let res = await fetch(url)
     const data = await res.json();
-    // console.log(data);
     dispalayCategories(data.categories);
     }
     catch({name, message})
@@ -48,7 +47,6 @@ const dispalayCategories = (data) =>{
         data.forEach((item) =>{
         const categoryName = item.category;
         const categoryId = item.category_id;
-        // console.log(categoryName);
         const categoryButton = document.createElement('div');
         categoryButton.innerHTML = 
         `<button id="${categoryId}" onclick="loadCategoryVideos(${categoryId})" class="btn category text-base sm:text-xl hover:bg-[#ee0000] hover:text-white "> 
